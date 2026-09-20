@@ -12,35 +12,22 @@ export const registrarAcceso = async (req, res) => {
 
     try {
 
-        const {
+        const { estado } = req.body;
+        const documento = req.usuario.documento;
 
-            usuario_id,
-            lugar,
-            estado,
-            observacion
+        if (!estado) {
+            return res.status(400).json({ mensaje: "El estado es obligatorio" });
+        }
 
-        } = req.body;
-
-        const fecha = new Date().toISOString().split("T")[0];
-
-        const hora = new Date().toTimeString().split(" ")[0];
+        const fechaAcceso = new Date();
 
         const [resultado] = await conexion.query(
 
             `INSERT INTO accesos
-            (usuario_id, fecha, hora, lugar, estado, observacion)
-            VALUES (?, ?, ?, ?, ?, ?)`,
+            (documento, fecha_acceso, estado)
+            VALUES (?, ?, ?)`,
 
-            [
-
-                usuario_id,
-                fecha,
-                hora,
-                lugar,
-                estado,
-                observacion
-
-            ]
+            [documento, fechaAcceso, estado]
 
         );
 
@@ -75,12 +62,11 @@ export const listarAccesos = async (req, res) => {
         const [accesos] = await conexion.query(
 
             `SELECT
-            accesos.*,
-            usuarios.nombre,
-            usuarios.apellido
+            documento,
+            fecha_acceso,
+            estado
             FROM accesos
-            INNER JOIN usuarios
-            ON usuarios.id = accesos.usuario_id`
+            ORDER BY fecha_acceso DESC`
 
         );
 
@@ -97,6 +83,7 @@ export const listarAccesos = async (req, res) => {
     }
 
 };
+
 
 // --------------------------
 // CONSULTAR ACCESO POR ID

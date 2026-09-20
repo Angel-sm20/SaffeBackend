@@ -1,7 +1,7 @@
 import conexion from "../config/database.js";
 
 // ----------------------------
-// VALIDAR ESCANEO (SIMULADO)
+// VALIDAR ESCANEO FACIAL
 // ----------------------------
 
 export const validarEscaneo = async (req, res) => {
@@ -12,7 +12,7 @@ export const validarEscaneo = async (req, res) => {
 
         const [usuario] = await conexion.query(
 
-            "SELECT * FROM usuarios WHERE documento = ?",
+            "SELECT * FROM personal_militar WHERE documento = ?",
 
             [documento]
 

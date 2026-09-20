@@ -7,13 +7,12 @@ import { Router } from "express";
 
 // Importación de controladores
 import {
-
     listarUsuarios,
-    obtenerUsuario,
     crearUsuario,
+    obtenerUsuario,
     actualizarUsuario,
-    eliminarUsuario
-
+    eliminarUsuario,
+    obtenerPerfil
 } from "../controllers/controller.usuario.js";
 
 // Middleware de autenticación
@@ -29,20 +28,13 @@ const router = Router();
 // RUTAS USUARIOS
 // -------------------------
 
-// Obtener todos los usuarios
+// Obtener perfil del usuario autenticado
+router.get("/perfil", verificarToken, obtenerPerfil);
 router.get("/usuarios", verificarToken, listarUsuarios);
-
-// Obtener usuario por ID
-router.get("/usuarios/:id", verificarToken, obtenerUsuario);
-
-// Crear usuario
-router.post("/usuarios", verificarToken, crearUsuario);
-
-// Actualizar usuario
-router.put("/usuarios/:id", verificarToken, actualizarUsuario);
-
-// Eliminar usuario
-router.delete("/usuarios/:id", verificarToken, eliminarUsuario);
+router.post("/usuarios", crearUsuario);
+router.get("/usuarios/:documento", verificarToken, obtenerUsuario);
+router.put("/usuarios/:documento", verificarToken, actualizarUsuario);
+router.delete("/usuarios/:documento", verificarToken, eliminarUsuario);
 
 // Exportar router
 export default router;

@@ -1,53 +1,28 @@
-// --------------
-// IMPORTACIONES
-// --------------
-
-// Importa la librería JWT
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/auth.js";
 
-// Clave secreta utilizada para validar el token
-const SECRET = "mi_clave_super_secreta";
-
-// ---------------
-// VERIFICAR TOKEN
-// ---------------
-
-// Middleware que verifica si el usuario envió un token válido
 export const verificarToken = (req, res, next) => {
+    const authorization = req.headers.authorization;
 
-    // Obtiene el token del encabezado Authorization
-    const token = req.headers.authorization;
-
-    // Verifica si existe el token
-    if (!token) {
-
+    if (!authorization || !authorization.startsWith("Bearer ")) {
         return res.status(401).json({
-
             mensaje: "Acceso denegado. Token no proporcionado."
-
         });
+    }
 
+    const token = authorization.slice("Bearer ".length).trim();
+    if (!token) {
+        return res.status(401).json({
+            mensaje: "Acceso denegado. Token no proporcionado."
+        });
     }
 
     try {
-
-        // Elimina la palabra Bearer
-        const tokenLimpio = token.replace("Bearer ", "");
-
-        // Verifica el token
-        jwt.verify(tokenLimpio, SECRET);
-
-        // Continúa con la siguiente función
+        req.usuario = jwt.verify(token, JWT_SECRET);
         next();
-
     } catch (error) {
-
-        res.status(401).json({
-
+        return res.status(401).json({
             mensaje: "Token inválido"
-
         });
-
     }
-
 };

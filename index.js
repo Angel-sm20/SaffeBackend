@@ -6,7 +6,7 @@ import express from "express";
 // Importa CORS para permitir la comunicación con el frontend
 import cors from "cors";
 
-import dotenv from "dotenv";
+import "dotenv/config";
 
 import "./app/config/database.js";
 
@@ -20,8 +20,6 @@ import routeEscaneo from "./app/routes/routes.escaneo.js";
 
 import routeHistorial from "./app/routes/routes.historial.js";
 
-dotenv.config();
-
 // --------------------------
 // CONFIGURACIÓN DEL SERVIDOR
 // -------------------------
@@ -30,7 +28,7 @@ dotenv.config();
 const app = express();
 
 // Puerto donde se ejecutará el backend
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 
 // -----------
 // MIDDLEWARES
@@ -40,7 +38,11 @@ const PORT = 3000;
 app.use(express.json());
 
 // Permite la comunicación entre frontend y backend
-app.use(cors());
+app.use(cors({
+    origin: process.env.FRONTEND_ORIGIN || "http://localhost:4000",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 app.use("/api", routeUsuario);
 
@@ -51,7 +53,6 @@ app.use("/api", routeAcceso);
 app.use("/api", routeEscaneo);
 
 app.use("/api", routeHistorial);
-
 
 app.use(express.urlencoded({ extended: true }));
 
