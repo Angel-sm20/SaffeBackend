@@ -11,7 +11,8 @@ import routeHistorial from "./app/routes/routes.historial.js";
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://localhost:4000")
+const allowedOrigins = (process.env.FRONTEND_ORIGIN ||
+    "http://localhost:4000,https://saffefrontend.up.railway.app")
     .split(",")
     .map((origin) => origin.trim().replace(/\/+$/, ""))
     .filter(Boolean);
