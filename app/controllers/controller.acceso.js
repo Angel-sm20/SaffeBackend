@@ -12,6 +12,7 @@ export const registrarAcceso = async (req, res) => {
 
     try {
 
+<<<<<<< HEAD
         const { estado } = req.body;
         const documento = req.usuario.documento;
 
@@ -20,14 +21,44 @@ export const registrarAcceso = async (req, res) => {
         }
 
         const fechaAcceso = new Date();
+=======
+        const {
+
+            usuario_id,
+            lugar,
+            estado,
+            observacion
+
+        } = req.body;
+
+        const fecha = new Date().toISOString().split("T")[0];
+
+        const hora = new Date().toTimeString().split(" ")[0];
+>>>>>>> 03a4331f49896e6306a7f8d4c5b8729c071f8600
 
         const [resultado] = await conexion.query(
 
             `INSERT INTO accesos
+<<<<<<< HEAD
             (documento, fecha_acceso, estado)
             VALUES (?, ?, ?)`,
 
             [documento, fechaAcceso, estado]
+=======
+            (usuario_id, fecha, hora, lugar, estado, observacion)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+
+            [
+
+                usuario_id,
+                fecha,
+                hora,
+                lugar,
+                estado,
+                observacion
+
+            ]
+>>>>>>> 03a4331f49896e6306a7f8d4c5b8729c071f8600
 
         );
 
@@ -62,11 +93,20 @@ export const listarAccesos = async (req, res) => {
         const [accesos] = await conexion.query(
 
             `SELECT
+<<<<<<< HEAD
             documento,
             fecha_acceso,
             estado
             FROM accesos
             ORDER BY fecha_acceso DESC`
+=======
+            accesos.*,
+            usuarios.nombre,
+            usuarios.apellido
+            FROM accesos
+            INNER JOIN usuarios
+            ON usuarios.id = accesos.usuario_id`
+>>>>>>> 03a4331f49896e6306a7f8d4c5b8729c071f8600
 
         );
 
@@ -84,7 +124,10 @@ export const listarAccesos = async (req, res) => {
 
 };
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 03a4331f49896e6306a7f8d4c5b8729c071f8600
 // --------------------------
 // CONSULTAR ACCESO POR ID
 // --------------------------

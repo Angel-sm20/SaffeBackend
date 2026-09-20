@@ -1,13 +1,18 @@
 import conexion from "../config/database.js";
 
 // ----------------------------
+<<<<<<< HEAD
 // OBTENER HISTORIAL DE ACCESOS DEL USUARIO
+=======
+// OBTENER HISTORIAL DE ACCESOS
+>>>>>>> 03a4331f49896e6306a7f8d4c5b8729c071f8600
 // ----------------------------
 
 export const obtenerHistorial = async (req, res) => {
 
     try {
 
+<<<<<<< HEAD
         // Obtiene el documento del usuario desde el token
         const usuarioDocumento = req.usuario.documento;
 
@@ -42,16 +47,48 @@ export const obtenerHistorial = async (req, res) => {
 
         console.log("Historial encontrado:", historial);
 
+=======
+        const [historial] = await conexion.query(
+
+            `SELECT
+
+                usuarios.id,
+                usuarios.nombre,
+                usuarios.apellido,
+
+                accesos.fecha,
+                accesos.hora,
+                accesos.estado,
+                accesos.lugar
+
+            FROM accesos
+
+            INNER JOIN usuarios
+
+            ON usuarios.id = accesos.usuario_id
+
+            ORDER BY accesos.fecha DESC,
+            accesos.hora DESC`
+
+        );
+
+>>>>>>> 03a4331f49896e6306a7f8d4c5b8729c071f8600
         res.json(historial);
 
     } catch (error) {
 
+<<<<<<< HEAD
         console.error("Error en obtenerHistorial:", error.message);
 
         res.status(500).json({
 
             error: error.message,
             mensaje: "Error al obtener el historial de accesos"
+=======
+        res.status(500).json({
+
+            error: error.message
+>>>>>>> 03a4331f49896e6306a7f8d4c5b8729c071f8600
 
         });
 
