@@ -19,18 +19,6 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.22.5"
-<<<<<<< HEAD
   },
-  "devDependencies": {},
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/melissazabala12/BackendSAFFE.git"
-  },
-  "bugs": {
-    "url": "https://github.com/melissazabala12/BackendSAFFE/issues"
-  },
-  "homepage": "https://github.com/melissazabala12/BackendSAFFE#readme"
-=======
-  }
->>>>>>> 03a4331f49896e6306a7f8d4c5b8729c071f8600
+  "devDependencies": {}
 }
