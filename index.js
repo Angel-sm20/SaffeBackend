@@ -11,13 +11,23 @@ import routeHistorial from "./app/routes/routes.historial.js";
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const frontendOrigin = process.env.FRONTEND_ORIGIN || "http://localhost:4000";
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://localhost:4000")
+    .split(",")
+    .map((origin) => origin.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
 
 app.use(express.json());
 app.use(cors({
-    origin: frontendOrigin,
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin.replace(/\/+$/, ""))) {
+            return callback(null, true);
+        }
+
+        return callback(new Error("Origen no permitido por CORS"));
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 204
 }));
 app.use(express.urlencoded({ extended: true }));
 
