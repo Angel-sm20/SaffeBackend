@@ -27,6 +27,19 @@ export const login = async (req, res) => {
             return res.status(401).json({ mensaje: "Contraseña incorrecta" });
         }
 
+        // --- REGISTRO DEL INGRESO EN LA TABLA ACCESOS ---
+        const ahora = new Date();
+        const hora = ahora.toLocaleTimeString("es-CO", { hour12: false }); // Ejemplo: "14:30"
+        const dia = ahora.getDate();
+        const mes = ahora.getMonth() + 1; // getMonth() va de 0 a 11
+        const anio = ahora.getFullYear();
+
+        await conexion.query(
+            "INSERT INTO accesos (documento, hora, dia, mes, anio) VALUES (?, ?, ?, ?, ?)",
+            [usuario.documento, hora, dia, mes, anio]
+        );
+        // ------------------------------------------------
+
         const token = jwt.sign(
             { documento: usuario.documento, nombre: usuario.nombre },
             JWT_SECRET,
