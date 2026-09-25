@@ -1,6 +1,5 @@
 import conexion from "../config/database.js";
 
-// Obtener la lista de accesos
 export const obtenerHistorial = async (req, res) => {
     try {
         const [historial] = await conexion.query(
@@ -20,11 +19,14 @@ export const obtenerHistorial = async (req, res) => {
 
         return res.json(historial);
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        console.error("Error en obtenerHistorial:", error);
+        return res.status(500).json({
+            error: error.message,
+            mensaje: "Error al obtener el historial de accesos"
+        });
     }
 };
 
-// Guardar un nuevo acceso tras el escaneo facial
 export const registrarAcceso = async (req, res) => {
     try {
         const { documento, hora, dia, mes, anio } = req.body;
