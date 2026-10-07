@@ -5,6 +5,7 @@ import {
     randomInt,
     timingSafeEqual
 } from "node:crypto";
+import { resolve4 } from "node:dns/promises";
 import conexion from "../config/database.js";
 import { JWT_SECRET } from "../config/auth.js";
 import nodemailer from "nodemailer";
@@ -26,7 +27,7 @@ const coincideHash = (actual, esperado) => {
         timingSafeEqual(hashActual, hashEsperado);
 };
 
-const obtenerTransportador = () => {
+const obtenerTransportador = async () => {
     const usuario = process.env.SMTP_USER;
     const contrasena = process.env.SMTP_APP_PASSWORD;
 
@@ -34,10 +35,15 @@ const obtenerTransportador = () => {
         return null;
     }
 
+    const [hostIPv4] = await resolve4("smtp.gmail.com");
+
     return nodemailer.createTransport({
-        host: "smtp.gmail.com",
+        host: hostIPv4,
         port: 465,
         secure: true,
+        tls: {
+            servername: "smtp.gmail.com"
+        },
         auth: {
             user: usuario,
             pass: contrasena.replace(/\s/g, "")
@@ -58,7 +64,7 @@ export const enviarCodigoRecuperacion = async (req, res) => {
             return res.status(400).json({ mensaje: "Ingresa un documento válido." });
         }
 
-        const transportador = obtenerTransportador();
+        const transportador = await obtenerTransportador();
         if (!transportador) {
             return res.status(503).json({
                 mensaje: "El servicio de correo no está configurado en el servidor."
@@ -119,7 +125,10 @@ export const enviarCodigoRecuperacion = async (req, res) => {
 
         return res.json({ mensaje: correoGenerico });
     } catch (error) {
-        console.error("Error al enviar código de recuperación:", error);
+        console.error(
+            "Error al enviar código de recuperación:",
+            error.code || error.message
+        );
         return res.status(500).json({
             mensaje: "No se pudo enviar el código de recuperación. Inténtalo de nuevo más tarde."
         });
