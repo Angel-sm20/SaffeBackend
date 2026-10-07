@@ -27,7 +27,9 @@ tablas compatibles con Railway:
 7. Desde `backend`, ejecuta `npm run dev`; desde `frontend`, ejecuta
    `npm run dev`.
 8. En Railway, configura `SMTP_USER` y `SMTP_APP_PASSWORD` como variables del
-   servicio backend. Railway inyecta las variables MySQL (`MYSQLHOST`,
+   servicio backend. Railway Free, Trial y Hobby bloquean el SMTP saliente;
+   para enviar por SMTP desde Railway se requiere un plan que permita
+   conexiones SMTP. Railway inyecta las variables MySQL (`MYSQLHOST`,
    `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`). En producción
    el backend usa las variables del servicio y no carga archivos `.env`.
 
