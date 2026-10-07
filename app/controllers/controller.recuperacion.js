@@ -5,8 +5,10 @@ import {
     randomInt,
     timingSafeEqual
 } from "node:crypto";
+import { resolve4 } from "node:dns/promises";
 import conexion from "../config/database.js";
 import { JWT_SECRET } from "../config/auth.js";
+import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 
 const DURACION_CODIGO_MS = 10 * 60 * 1000;
@@ -25,35 +27,31 @@ const coincideHash = (actual, esperado) => {
         timingSafeEqual(hashActual, hashEsperado);
 };
 
-const enviarCorreoRecuperacion = async (destinatario, codigo) => {
-    const apiKey = process.env.RESEND_API_KEY;
-    const remitente = process.env.RESEND_FROM_EMAIL;
+const crearTransportador = async () => {
+    const usuario = process.env.SMTP_USER;
+    const contrasena = process.env.SMTP_APP_PASSWORD;
 
-    if (!apiKey || !remitente) {
-        throw new Error("Resend no está configurado.");
+    if (!usuario || !contrasena) {
+        return null;
     }
 
-    const respuesta = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json"
+    const [hostIPv4] = await resolve4("smtp.gmail.com");
+
+    return nodemailer.createTransport({
+        host: hostIPv4,
+        port: 465,
+        secure: true,
+        connectionTimeout: 15000,
+        greetingTimeout: 10000,
+        socketTimeout: 20000,
+        tls: {
+            servername: "smtp.gmail.com"
         },
-        body: JSON.stringify({
-            from: remitente,
-            to: [destinatario],
-            subject: "Código para recuperar tu contraseña - SAFFE",
-            text: `Tu código de recuperación es ${codigo}. Vence en 10 minutos. Si no solicitaste este cambio, ignora este mensaje.`,
-            html: `<p>Tu código de recuperación de SAFFE es:</p><p style="font-size:24px;font-weight:bold;letter-spacing:4px">${codigo}</p><p>Vence en 10 minutos. Si no solicitaste este cambio, ignora este mensaje.</p>`
-        }),
-        signal: AbortSignal.timeout(15000)
+        auth: {
+            user: usuario,
+            pass: contrasena.replace(/\s/g, "")
+        }
     });
-
-    if (!respuesta.ok) {
-        throw new Error(`Resend rechazó el correo (HTTP ${respuesta.status}).`);
-    }
-
-    return true;
 };
 
 const correoGenerico =
@@ -69,9 +67,10 @@ export const enviarCodigoRecuperacion = async (req, res) => {
             return res.status(400).json({ mensaje: "Ingresa un documento válido." });
         }
 
-        if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+        const transportador = await crearTransportador();
+        if (!transportador) {
             return res.status(503).json({
-                mensaje: "El servicio de correo HTTPS no está configurado en el servidor."
+                mensaje: "El servicio de correo SMTP no está configurado en el servidor."
             });
         }
 
@@ -81,6 +80,7 @@ export const enviarCodigoRecuperacion = async (req, res) => {
         );
 
         if (usuarios.length === 0 || !usuarios[0].correo) {
+            transportador.close();
             return res.json({ mensaje: correoGenerico });
         }
 
@@ -92,6 +92,7 @@ export const enviarCodigoRecuperacion = async (req, res) => {
 
         if (solicitudes.length > 0 &&
             ahora - Number(solicitudes[0].creado_en) < INTERVALO_REENVIO_MS) {
+            transportador.close();
             return res.json({ mensaje: correoGenerico });
         }
 
@@ -112,13 +113,21 @@ export const enviarCodigoRecuperacion = async (req, res) => {
         );
 
         try {
-            await enviarCorreoRecuperacion(usuarios[0].correo, codigo);
+            await transportador.sendMail({
+                from: `"SAFFE" <${process.env.SMTP_USER}>`,
+                to: usuarios[0].correo,
+                subject: "Código para recuperar tu contraseña - SAFFE",
+                text: `Tu código de recuperación es ${codigo}. Vence en 10 minutos. Si no solicitaste este cambio, ignora este mensaje.`,
+                html: `<p>Tu código de recuperación de SAFFE es:</p><p style="font-size:24px;font-weight:bold;letter-spacing:4px">${codigo}</p><p>Vence en 10 minutos. Si no solicitaste este cambio, ignora este mensaje.</p>`
+            });
         } catch (error) {
             await conexion.query(
                 "DELETE FROM saffe_codigos_recuperacion WHERE documento = ?",
                 [documento]
             );
             throw error;
+        } finally {
+            transportador.close();
         }
 
         return res.json({ mensaje: correoGenerico });
