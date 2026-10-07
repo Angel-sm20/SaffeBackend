@@ -1,5 +1,8 @@
 import dotenv from "dotenv";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
+const envPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../.env");
 const isRailway = Boolean(
     process.env.RAILWAY_ENVIRONMENT ||
     process.env.RAILWAY_PROJECT_ID ||
@@ -7,6 +10,5 @@ const isRailway = Boolean(
 );
 
 if (process.env.NODE_ENV !== "production" && !isRailway) {
-    dotenv.config({ path: ".env.example", quiet: true });
-    dotenv.config({ override: true, quiet: true });
+    dotenv.config({ path: envPath, override: true, quiet: true });
 }

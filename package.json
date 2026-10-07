@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch-path=app --watch-path=.env --watch-path=index.js index.js"
   },
   "keywords": [],
   "author": "",

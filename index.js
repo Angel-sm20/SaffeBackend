@@ -70,7 +70,18 @@ const iniciarServidor = async () => {
             console.log(`Servidor ejecutándose en el puerto ${PORT}`);
         });
     } catch (error) {
-        console.error("No se pudo preparar la base de datos:", error.code || error.message);
+        if (error.code === "ER_ACCESS_DENIED_ERROR") {
+            console.error(
+                "No se pudo conectar a MySQL: verifica DB_USER y DB_PASSWORD en backend/.env. " +
+                "DB_PASSWORD es la contraseña de MySQL, no la de Gmail."
+            );
+        } else if (error.code === "ER_BAD_DB_ERROR") {
+            console.error(
+                "La base de datos configurada no existe. Verifica DB_NAME en backend/.env."
+            );
+        } else {
+            console.error("No se pudo preparar la base de datos:", error.code || error.message);
+        }
         await conexion.end();
         process.exit(1);
     }
