@@ -2,6 +2,11 @@ import conexion from "../config/database.js";
 
 const camposUsuario = "documento, nombre, apellido, correo, rango, fecha_registro";
 
+const correoValido = (correo) =>
+    typeof correo === "string" &&
+    correo.length <= 254 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.trim());
+
 export const listarUsuarios = async (req, res) => {
     try {
         const [usuarios] = await conexion.query(
@@ -21,12 +26,15 @@ export const crearUsuario = async (req, res) => {
                 mensaje: "nombre, apellido, documento, correo y contraseña son obligatorios"
             });
         }
+        if (!correoValido(correo)) {
+            return res.status(400).json({ mensaje: "Ingresa un correo válido." });
+        }
 
         await conexion.query(
             `INSERT INTO personal_militar
              (nombre, apellido, documento, correo, contraseña, rango, fecha_registro)
              VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-            [nombre, apellido, documento, correo, contraseña, rango || null]
+            [nombre, apellido, documento, correo.trim(), contraseña, rango || null]
         );
         return res.status(201).json({ mensaje: "Usuario registrado correctamente" });
     } catch (error) {
@@ -51,25 +59,60 @@ export const obtenerUsuario = async (req, res) => {
 
 export const actualizarUsuario = async (req, res) => {
     try {
-        const { nombre, apellido, documento, correo, contraseña, rango } = req.body;
-        const valores = [nombre, apellido, documento, correo, rango];
-        let consulta = `UPDATE personal_militar
-                        SET nombre = ?, apellido = ?, documento = ?, correo = ?, rango = ?`;
+        const campos = [
+            ["nombre", "nombre"],
+            ["apellido", "apellido"],
+            ["documento", "documento"],
+            ["correo", "correo"],
+            ["rango", "rango"],
+            ["contraseña", "contraseña"]
+        ];
+        const asignaciones = [];
+        const valores = [];
 
-        if (contraseña) {
-            consulta += ", contraseña = ?";
-            valores.push(contraseña);
+        for (const [propiedad, columna] of campos) {
+            if (!Object.hasOwn(req.body, propiedad)) {
+                continue;
+            }
+
+            let valor = req.body[propiedad];
+            if (propiedad === "correo") {
+                if (!correoValido(valor)) {
+                    return res.status(400).json({
+                        mensaje: "Ingresa un correo válido."
+                    });
+                }
+                valor = valor.trim();
+            }
+
+            asignaciones.push(`\`${columna}\` = ?`);
+            valores.push(valor);
+        }
+
+        if (asignaciones.length === 0) {
+            return res.status(400).json({
+                mensaje: "Indica al menos un campo para actualizar."
+            });
         }
 
         valores.push(req.params.documento);
         const [resultado] = await conexion.query(
-            `${consulta} WHERE documento = ?`,
+            `UPDATE personal_militar
+             SET ${asignaciones.join(", ")}
+             WHERE documento = ?`,
             valores
         );
 
         if (resultado.affectedRows === 0) {
-            return res.status(404).json({ mensaje: "Usuario no encontrado" });
+            const [usuarios] = await conexion.query(
+                "SELECT 1 FROM personal_militar WHERE documento = ? LIMIT 1",
+                [req.params.documento]
+            );
+            if (usuarios.length === 0) {
+                return res.status(404).json({ mensaje: "Usuario no encontrado" });
+            }
         }
+
         return res.json({ mensaje: "Usuario actualizado correctamente" });
     } catch (error) {
         return res.status(500).json({ error: error.message });

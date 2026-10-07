@@ -5,7 +5,6 @@ import {
     randomInt,
     timingSafeEqual
 } from "node:crypto";
-import { resolve4 } from "node:dns/promises";
 import conexion from "../config/database.js";
 import { JWT_SECRET } from "../config/auth.js";
 import nodemailer from "nodemailer";
@@ -27,7 +26,7 @@ const coincideHash = (actual, esperado) => {
         timingSafeEqual(hashActual, hashEsperado);
 };
 
-const crearTransportador = async () => {
+const crearTransportador = () => {
     const usuario = process.env.SMTP_USER;
     const contrasena = process.env.SMTP_APP_PASSWORD;
 
@@ -35,18 +34,24 @@ const crearTransportador = async () => {
         return null;
     }
 
-    const [hostIPv4] = await resolve4("smtp.gmail.com");
+    const host = process.env.SMTP_HOST || "smtp.gmail.com";
+    const puerto = Number(process.env.SMTP_PORT || 465);
+    const seguroConfigurado = process.env.SMTP_SECURE?.trim().toLowerCase();
+
+    if (!Number.isInteger(puerto) || puerto < 1 || puerto > 65535) {
+        throw new Error("SMTP_PORT debe ser un puerto válido.");
+    }
+    if (seguroConfigurado && !["true", "false"].includes(seguroConfigurado)) {
+        throw new Error("SMTP_SECURE debe ser true o false.");
+    }
 
     return nodemailer.createTransport({
-        host: hostIPv4,
-        port: 465,
-        secure: true,
+        host,
+        port: puerto,
+        secure: seguroConfigurado ? seguroConfigurado === "true" : puerto === 465,
         connectionTimeout: 15000,
         greetingTimeout: 10000,
         socketTimeout: 20000,
-        tls: {
-            servername: "smtp.gmail.com"
-        },
         auth: {
             user: usuario,
             pass: contrasena.replace(/\s/g, "")
@@ -67,20 +72,12 @@ export const enviarCodigoRecuperacion = async (req, res) => {
             return res.status(400).json({ mensaje: "Ingresa un documento válido." });
         }
 
-        const transportador = await crearTransportador();
-        if (!transportador) {
-            return res.status(503).json({
-                mensaje: "El servicio de correo SMTP no está configurado en el servidor."
-            });
-        }
-
         const [usuarios] = await conexion.query(
             "SELECT correo FROM personal_militar WHERE documento = ?",
             [documento]
         );
 
         if (usuarios.length === 0 || !usuarios[0].correo) {
-            transportador.close();
             return res.json({ mensaje: correoGenerico });
         }
 
@@ -92,8 +89,14 @@ export const enviarCodigoRecuperacion = async (req, res) => {
 
         if (solicitudes.length > 0 &&
             ahora - Number(solicitudes[0].creado_en) < INTERVALO_REENVIO_MS) {
-            transportador.close();
             return res.json({ mensaje: correoGenerico });
+        }
+
+        const transportador = crearTransportador();
+        if (!transportador) {
+            return res.status(503).json({
+                mensaje: "El servicio de correo SMTP no está configurado en el servidor."
+            });
         }
 
         const codigo = String(randomInt(0, 1_000_000)).padStart(6, "0");
@@ -132,10 +135,33 @@ export const enviarCodigoRecuperacion = async (req, res) => {
 
         return res.json({ mensaje: correoGenerico });
     } catch (error) {
-        console.error(
-            "Error al enviar código de recuperación:",
-            error.message
-        );
+        console.error("Error al enviar código de recuperación:", {
+            code: error.code,
+            responseCode: error.responseCode,
+            command: error.command,
+            message: error.message
+        });
+
+        if (error.code === "EAUTH" || Number(error.responseCode) === 535) {
+            return res.status(503).json({
+                mensaje: "El servidor SMTP rechazó las credenciales configuradas."
+            });
+        }
+
+        if ([
+            "ECONNECTION",
+            "ECONNREFUSED",
+            "EHOSTUNREACH",
+            "EAI_AGAIN",
+            "ENOTFOUND",
+            "ESOCKET",
+            "ETIMEDOUT"
+        ].includes(error.code)) {
+            return res.status(503).json({
+                mensaje: "No fue posible conectar con el servidor SMTP. Verifica la configuración de correo y que el hosting permita conexiones SMTP salientes."
+            });
+        }
+
         return res.status(500).json({
             mensaje: "No se pudo enviar el código de recuperación. Inténtalo de nuevo más tarde."
         });
