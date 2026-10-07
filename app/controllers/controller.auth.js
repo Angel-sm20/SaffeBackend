@@ -1,5 +1,6 @@
 import conexion from "../config/database.js";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { JWT_SECRET } from "../config/auth.js";
 
 // 1. Inicio de sesión estándar (Contraseña)
@@ -24,7 +25,14 @@ export const login = async (req, res) => {
         }
 
         const usuario = usuarios[0];
-        if (usuario.contraseña !== clave) {
+        const tieneContrasenaHash =
+            typeof usuario.contraseña === "string" &&
+            /^\$2[aby]\$\d{2}\$/.test(usuario.contraseña);
+        const contrasenaValida = tieneContrasenaHash
+            ? await bcrypt.compare(clave, usuario.contraseña)
+            : usuario.contraseña === clave;
+
+        if (!contrasenaValida) {
             return res.status(401).json({ mensaje: "Contraseña incorrecta" });
         }
 
@@ -36,8 +44,10 @@ export const login = async (req, res) => {
         const anio = ahora.getFullYear();
 
         await conexion.query(
-            "INSERT INTO accesos (documento, hora, dia, mes, anio) VALUES (?, ?, ?, ?, ?)",
-            [usuario.documento, hora, dia, mes, anio]
+            `INSERT INTO accesos
+                (documento, hora, dia, mes, anio, fecha_acceso, estado)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [usuario.documento, hora, dia, mes, anio, ahora, "AUTORIZADO"]
         );
         // ------------------------------------------------
 

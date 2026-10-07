@@ -1,8 +1,9 @@
-import "dotenv/config";
+import "./app/config/env.js";
 import express from "express";
 import cors from "cors";
 
-import "./app/config/database.js";
+import conexion from "./app/config/database.js";
+import { migrarBaseDeDatos } from "./app/config/migrate.js";
 import routeUsuario from "./app/routes/routes.usuario.js";
 import routeAuth from "./app/routes/routes.auth.js";
 import routeAcceso from "./app/routes/routes.acceso.js";
@@ -42,10 +43,27 @@ app.get("/", (req, res) => {
     res.json({ mensaje: "Backend SAFFE funcionando correctamente" });
 });
 
-app.get("/health", (req, res) => {
-    res.json({ status: "ok" });
+app.get("/health", async (req, res) => {
+    try {
+        await conexion.query("SELECT 1");
+        return res.json({ status: "ok", database: "connected" });
+    } catch (error) {
+        console.error("Health check could not connect to MySQL:", error.code || error.message);
+        return res.status(503).json({ status: "error", database: "unavailable" });
+    }
 });
 
-app.listen(PORT, () => {
-    console.log(`Servidor ejecutándose en el puerto ${PORT}`);
-});
+const iniciarServidor = async () => {
+    try {
+        await migrarBaseDeDatos();
+        app.listen(PORT, () => {
+            console.log(`Servidor ejecutándose en el puerto ${PORT}`);
+        });
+    } catch (error) {
+        console.error("No se pudo preparar la base de datos:", error.code || error.message);
+        await conexion.end();
+        process.exit(1);
+    }
+};
+
+iniciarServidor();
