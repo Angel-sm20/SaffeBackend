@@ -4,6 +4,7 @@ import cors from "cors";
 
 import conexion from "./app/config/database.js";
 import { migrarBaseDeDatos } from "./app/config/migrate.js";
+import { normalizarOrigen } from "./app/config/origin.js";
 import routeUsuario from "./app/routes/routes.usuario.js";
 import routeAuth from "./app/routes/routes.auth.js";
 import routeAcceso from "./app/routes/routes.acceso.js";
@@ -15,13 +16,13 @@ const PORT = Number(process.env.PORT || 3000);
 const allowedOrigins = (process.env.FRONTEND_ORIGIN ||
     "http://localhost:4000,https://saffefrontend.up.railway.app")
     .split(",")
-    .map((origin) => origin.trim().replace(/\/+$/, ""))
+    .map(normalizarOrigen)
     .filter(Boolean);
 
 app.use(express.json());
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin.replace(/\/+$/, ""))) {
+        if (!origin || allowedOrigins.includes(normalizarOrigen(origin))) {
             return callback(null, true);
         }
 
@@ -51,6 +52,15 @@ app.get("/health", async (req, res) => {
         console.error("Health check could not connect to MySQL:", error.code || error.message);
         return res.status(503).json({ status: "error", database: "unavailable" });
     }
+});
+
+app.use((error, req, res, next) => {
+    if (error.message === "Origen no permitido por CORS") {
+        return res.status(403).json({ mensaje: error.message });
+    }
+
+    console.error("Error no controlado en la API:", error.message);
+    return res.status(500).json({ mensaje: "Error interno del servidor." });
 });
 
 const iniciarServidor = async () => {
