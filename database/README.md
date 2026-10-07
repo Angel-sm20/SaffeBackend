@@ -18,15 +18,18 @@ tablas compatibles con Railway:
    aleatorio y tendrá que usar recuperación de contraseña para establecer una.
 4. El backend ejecuta migraciones idempotentes al arrancar, creando las tablas
    faltantes y agregando las columnas de acceso que necesiten las consultas.
-5. En Railway, configura `SMTP_USER` y `SMTP_APP_PASSWORD` en las variables del
-   servicio backend y vuelve a desplegar. Railway inyecta las variables MySQL
+5. Railway Free, Trial y Hobby bloquean SMTP saliente. En Resend, verifica un
+   dominio que controles y crea una API key. En las variables del servicio
+   backend en Railway configura `RESEND_API_KEY` y
+   `RESEND_FROM_EMAIL` (por ejemplo, `SAFFE <no-reply@tu-dominio-verificado>`),
+   y vuelve a desplegar. Railway inyecta las variables MySQL
    (`MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`).
    En producción el backend no lee archivos `.env`, por lo que usa las
    variables del servicio.
 6. En desarrollo local, configura las variables en `.env.example` (el backend
    también lee `.env` si existe; este último tiene prioridad). `DB_PASSWORD`
-   es la contraseña de MySQL, no la de Gmail. `SMTP_APP_PASSWORD` debe ser una
-   contraseña de aplicación de Google.
+   es la contraseña de MySQL. Para enviar correos localmente configura también
+   `RESEND_API_KEY` y `RESEND_FROM_EMAIL`.
 7. Desde `SaffeBackend`, ejecuta `npm run dev`.
 
 No copies filas de usuarios reales de Railway a este entorno de prueba.
